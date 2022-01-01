@@ -88,27 +88,6 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
     }
 
     /**
-     * Επιστρέφει αναφορά στο αντικείμενο λογαριασμού με όνομα username.
-     * @param username Το username που πρέπει να αντιστοιχεί στον λογαριασμό που αναζητείται.
-     * @return Ο λογαριασμός που αναζητείται.
-     * @throws IllegalArgumentException Σε περίπτωση που ο λογαριασμός που αναζητείται δεν υπάρχει.
-     */
-    private synchronized Account getValidUser(String username) throws IllegalArgumentException {
-        Account thisAccount;
-        // Εξασφάλιση συγχρονισμού μεθόδου: Εισάγω το κρίσιμο τμήμα εντός synchronized block.
-        synchronized (this) {
-            thisAccount = userAccounts.get(usernameToAccount.get(username));
-        }
-
-        // TODO: remove if q1 false
-        // Σε περίπτωση που το authToken όρισμα δεν αντιστοιχεί σε λογαριασμό, επιστρέφω exception.
-        if (thisAccount == null) {
-            throw new IllegalArgumentException("authToken does not correspond to valid account.");
-        }
-        return thisAccount;
-    }
-
-    /**
      * Δημιουργεί ένα account για το user και χρησιμοποιεί το δοσμένο username.
      *
      * @param username Το username του νέου χρήστη που θα δημιουργηθεί.
@@ -175,7 +154,7 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
         Account thisUser = getValidUser(authToken);
 
         // Βρίσκω τον λογαριασμό του χρήστη που λαμβάνει το μήνυμα.
-        Account recipientAccount = null;
+        Account recipientAccount;
 
         // Εξασφάλιση συγχρονισμού μεθόδου: Εισάγω το κρίσιμο τμήμα εντός synchronized block.
         synchronized (this) {
