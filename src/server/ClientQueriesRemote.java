@@ -4,10 +4,7 @@ import common.ClientQueries;
 
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Random;
+import java.util.*;
 
 /**
  * Η υλοποίηση της διεπαφής ClientQueries για τη χρήση RMI από μέρος του Server.
@@ -15,12 +12,14 @@ import java.util.Random;
  * @author Ioannis Baraklilis
  */
 public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQueries {
+    /** Λίστα αποθηκευμένων λογαριασμών χρηστών. */
+    private final List<Account> userAccounts;
 
-    /** Υλοποιεί την αντιστοίχηση μοναδικού κωδικού με λογαριασμό. */
-    private final HashMap<Integer, Account> userAuthTokenToAccount;
+    /** Υλοποιεί την αντιστοίχηση μοναδικού κωδικού με θέση λογαριασμού στη λίστα λογαριασμών userAccounts. */
+    private final HashMap<Integer, Integer> userAuthTokenToAccount;
 
-    /** Υλοποιεί την αντιστοίχηση username με λογαριασμό χρήστη. */
-    private final HashMap<String, Account> usernameToAccount;
+    /** Υλοποιεί την αντιστοίχηση username με  θέση λογαριασμού στη λίστα λογαριασμών userAccounts. */
+    private final HashMap<String, Integer> usernameToAccount;
 
     /** Αποθηκεύει το σύνολο των χρησιμοποιούμενων μοναδικών κλειδιών λογαριασμών */
     private final HashSet<Integer> usedAuthTokens;
@@ -34,6 +33,7 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
      */
     protected ClientQueriesRemote() throws RemoteException {
         super();
+        userAccounts = new ArrayList<>();
         userAuthTokenToAccount = new HashMap<>();
         usernameToAccount = new HashMap<>();
         randomGenerator = new Random();
@@ -76,7 +76,7 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
         Account thisAccount;
         // Εξασφάλιση συγχρονισμού μεθόδου: Εισάγω το κρίσιμο τμήμα εντός synchronized block.
         synchronized (this) {
-            thisAccount = userAuthTokenToAccount.get(authToken);
+            thisAccount = userAccounts.get(userAuthTokenToAccount.get(authToken));
         }
 
         // TODO: remove if q1 false
@@ -97,7 +97,7 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
         Account thisAccount;
         // Εξασφάλιση συγχρονισμού μεθόδου: Εισάγω το κρίσιμο τμήμα εντός synchronized block.
         synchronized (this) {
-            thisAccount = usernameToAccount.get(username);
+            thisAccount = userAccounts.get(usernameToAccount.get(username));
         }
 
         // TODO: remove if q1 false
@@ -138,8 +138,10 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
             int newAuthToken = generateUniqueAuthToken();
             Account newAccount = new Account(username, newAuthToken, new ArrayList<>());
             usedAuthTokens.add(newAuthToken); // Σημείωση του id ως δεσμευμένο.
-            userAuthTokenToAccount.put(newAuthToken, newAccount); // Δημιουργία αντιστοίχησης authToken-λογαριασμού.
-            usernameToAccount.put(username, newAccount); // Δημιουργία αντιστοίχησης username-λογαριασμού.
+            userAccounts.add(newAccount); // Προσθήκη του νέου λογαριασμού στη λίστα.
+            int newAccountPlace = userAccounts.size()-1; // Εύρεση της θέσης του νέου λογαριασμού στη λίστα.
+            userAuthTokenToAccount.put(newAuthToken, newAccountPlace); // Δημιουργία αντιστοίχησης authToken-λογαριασμού.
+            usernameToAccount.put(username, newAccountPlace); // Δημιουργία αντιστοίχησης username-λογαριασμού.
 
             return String.valueOf(newAuthToken);
         }
@@ -177,7 +179,7 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
 
         // Εξασφάλιση συγχρονισμού μεθόδου: Εισάγω το κρίσιμο τμήμα εντός synchronized block.
         synchronized (this) {
-            recipientAccount = usernameToAccount.get(recipient);
+            recipientAccount = userAccounts.get(usernameToAccount.get(recipient));
         }
 
         // Έλεγχος για το αν το προφίλ του χρήστη παραλήπτη υπάρχει.
