@@ -54,6 +54,7 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
      */
     private int generateUniqueAuthToken(){
         int tempNumber = randomGenerator.nextInt();
+        tempNumber = tempNumber>=0?tempNumber:-tempNumber;
 
         // Εξασφάλιση συγχρονισμού μεθόδου: Εισάγω το κρίσιμο τμήμα εντός synchronized block.
         synchronized (this){
@@ -61,6 +62,7 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
             // Εξασφάλιση συγχρονισμού μεθόδου: Εισάγω το κρίσιμο τμήμα εντός synchronized block.
             while (usedAuthTokens.contains(tempNumber)) {
                 tempNumber = randomGenerator.nextInt();
+                tempNumber = tempNumber>=0?tempNumber:-tempNumber;
             }
         }
         return tempNumber;
