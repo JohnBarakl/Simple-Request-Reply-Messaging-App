@@ -1,6 +1,7 @@
 package server;
 
 import common.ClientQueries;
+import common.InvalidAuthTokenException;
 
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
@@ -18,11 +19,8 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
     /** Υλοποιεί την αντιστοίχηση μοναδικού κωδικού με θέση λογαριασμού στη λίστα λογαριασμών userAccounts. */
     private final HashMap<Integer, Integer> userAuthTokenToAccount;
 
-    /** Υλοποιεί την αντιστοίχηση username με  θέση λογαριασμού στη λίστα λογαριασμών userAccounts. */
+    /** Υλοποιεί την αντιστοίχηση username με θέση λογαριασμού στη λίστα λογαριασμών userAccounts. */
     private final HashMap<String, Integer> usernameToAccount;
-
-    /** Αποθηκεύει το σύνολο των χρησιμοποιούμενων μοναδικών κλειδιών λογαριασμών */
-    private final HashSet<Integer> usedAuthTokens;
 
     /** Η γεννήτρια τυχαίων αριθμών που θα χρησιμοποιηθεί για τη δημιουργία μοναδικών κωδικών */
     private final Random randomGenerator;
@@ -37,7 +35,6 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
         userAuthTokenToAccount = new HashMap<>();
         usernameToAccount = new HashMap<>();
         randomGenerator = new Random();
-        usedAuthTokens = new HashSet<>();
     }
 
     /**
@@ -60,7 +57,7 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
         synchronized (this){
             // Συνεχή παραγωγή τυχαίων αριθμών μέχρις ότου βρεθεί κάποιος που δεν είναι εγγεγραμμένος.
             // Εξασφάλιση συγχρονισμού μεθόδου: Εισάγω το κρίσιμο τμήμα εντός synchronized block.
-            while (usedAuthTokens.contains(tempNumber)) {
+            while (userAuthTokenToAccount.containsKey(tempNumber)) {
                 tempNumber = randomGenerator.nextInt();
                 tempNumber = tempNumber>=0?tempNumber:-tempNumber;
             }
@@ -70,23 +67,33 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
 
     /**
      * Επιστρέφει αναφορά στο αντικείμενο λογαριασμού με μοναδικό κωδικό authToken.
+     * Αν δε βρεθεί χρήστης με τέτοιον κωδικό επιστρέφεται null.
      * @param authToken Ο μοναδικός κωδικός που πρέπει να αντιστοιχεί στον λογαριασμό που αναζητείται.
      * @return Ο λογαριασμός που αναζητείται.
-     * @throws IllegalArgumentException Σε περίπτωση που ο λογαριασμός που αναζητείται δεν υπάρχει.
      */
-    private Account getValidUser(int authToken) throws IllegalArgumentException {
+    private Account getValidUser(int authToken){
         Account thisAccount;
         // Εξασφάλιση συγχρονισμού μεθόδου: Εισάγω το κρίσιμο τμήμα εντός synchronized block.
         synchronized (this) {
             thisAccount = userAccounts.get(userAuthTokenToAccount.get(authToken));
         }
 
-        // TODO: remove if q1 false
-        // Σε περίπτωση που το authToken όρισμα δεν αντιστοιχεί σε λογαριασμό, επιστρέφω exception.
-        if (thisAccount == null) {
-            throw new IllegalArgumentException("authToken does not correspond to valid account.");
-        }
         return thisAccount;
+    }
+
+    /**
+     * Ελέγχει την εγκυρότητα του token του ορίσματος ως token που αντιστοιχεί σε αποθηκευμένο χρήστη και επιστρέφει το γεγονός αυτό.
+     * @param authToken Ο μοναδικός κωδικός αυθεντικοποίησης του χρήστη, του οποίου η ύπαρξη επαληθεύεται.
+     * @return Η κατάσταση επιτυχίας επαλήθευσης.
+     */
+    private boolean checkTokenValidity(int authToken){
+        boolean valid = false;
+
+        synchronized (this) {
+            valid = userAuthTokenToAccount.containsKey(authToken);
+        }
+
+        return valid;
     }
 
     /**
@@ -118,7 +125,6 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
             // Δημιουργία νέου λογαριασμού και εγγραφή του στις δομές δεδομένων του προγράμματος.
             int newAuthToken = generateUniqueAuthToken();
             Account newAccount = new Account(username, newAuthToken, new ArrayList<>());
-            usedAuthTokens.add(newAuthToken); // Σημείωση του id ως δεσμευμένο.
             userAccounts.add(newAccount); // Προσθήκη του νέου λογαριασμού στη λίστα.
             int newAccountPlace = userAccounts.size()-1; // Εύρεση της θέσης του νέου λογαριασμού στη λίστα.
             userAuthTokenToAccount.put(newAuthToken, newAccountPlace); // Δημιουργία αντιστοίχησης authToken-λογαριασμού.
@@ -133,9 +139,15 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
      *
      * @param authToken Ο μοναδικός κωδικός αυθεντικοποίησης του χρήστη.
      * @return Η λίστα με το username όλων των account.
+     *         Σε περίπτωση πού το authToken δεν αντιστοιχεί σε χρήστη επιστρέφεται μήνυμα σφάλματος ως μοναδικό στοιχείο της λίστας.
+     * @throws InvalidAuthTokenException Σε περίπτωση πού το authToken δεν αντιστοιχεί σε χρήστη.
      */
     @Override
-    public String[] showAccounts(int authToken) throws RemoteException {
+    public String[] showAccounts(int authToken) throws RemoteException, InvalidAuthTokenException {
+        if (!checkTokenValidity(authToken)){
+            throw new InvalidAuthTokenException();
+        }
+
         // Εξασφάλιση συγχρονισμού μεθόδου: Εισάγω το κρίσιμο τμήμα εντός synchronized block.
         synchronized (this){
             return usernameToAccount.keySet().toArray(new String[0]);
@@ -149,9 +161,15 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
      * @param recipient Το username του παραλήπτη.
      * @param messageBody Το περιεχόμενο του μηνύματος.
      * @return Κατάσταση αποστολής του μηνύματος.
+     *         Σε περίπτωση πού το authToken δεν αντιστοιχεί σε χρήστη επιστρέφεται μήνυμα σφάλματος.
+     * @throws InvalidAuthTokenException Σε περίπτωση πού το authToken δεν αντιστοιχεί σε χρήστη.
      */
     @Override
-    public String sendMessage(int authToken, String recipient, String messageBody) throws RemoteException {
+    public String sendMessage(int authToken, String recipient, String messageBody) throws RemoteException, InvalidAuthTokenException {
+        if (!checkTokenValidity(authToken)){
+            throw new InvalidAuthTokenException();
+        }
+
         // Βρίσκω τον λογαριασμό του χρήστη που στέλνει το μήνυμα.
         Account thisUser = getValidUser(authToken);
 
@@ -160,7 +178,13 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
 
         // Εξασφάλιση συγχρονισμού μεθόδου: Εισάγω το κρίσιμο τμήμα εντός synchronized block.
         synchronized (this) {
-            recipientAccount = userAccounts.get(usernameToAccount.get(recipient));
+            Integer accountPosition = usernameToAccount.get(recipient);
+            // Ο παραλήπτης μπορεί να μην υπάρχει, έλεγχος για το αν υπάρχει.
+            if (accountPosition != null){
+                recipientAccount = userAccounts.get(accountPosition);
+            } else {
+                recipientAccount = null;
+            }
         }
 
         // Έλεγχος για το αν το προφίλ του χρήστη παραλήπτη υπάρχει.
@@ -179,11 +203,17 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
      *
      * @param authToken Ο μοναδικός κωδικός αυθεντικοποίησης του χρήστη.
      * @return Λίστα με όλα τα μηνύματα του χρήστη. <br>
-     * Για κάθε στοιχείο της λίστας, εμφανίζεται ο μοναδικός κωδικός του μηνύματος,
-     * το username αποστολέα και η κατάσταση για το αν έχει ήδη διαβαστεί.
+     *         Για κάθε στοιχείο της λίστας, εμφανίζεται ο μοναδικός κωδικός του μηνύματος,
+     *         το username αποστολέα και η κατάσταση για το αν έχει ήδη διαβαστεί. <br>
+     *         Σε περίπτωση πού το authToken δεν αντιστοιχεί σε χρήστη επιστρέφεται μήνυμα σφάλματος ως μοναδικό στοιχείο της λίστας.
+     * @throws InvalidAuthTokenException Σε περίπτωση πού το authToken δεν αντιστοιχεί σε χρήστη.
      */
     @Override
-    public String[] showInbox(int authToken) throws RemoteException {
+    public String[] showInbox(int authToken) throws RemoteException, InvalidAuthTokenException {
+        if (!checkTokenValidity(authToken)){
+            throw new InvalidAuthTokenException();
+        }
+
         // Βρίσκω τον λογαριασμό του ζητούμενου χρήστη.
         Account thisUser = getValidUser(authToken);
 
@@ -206,10 +236,16 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
      * @param authToken Ο μοναδικός κωδικός αυθεντικοποίησης του χρήστη.
      * @param messageId Ο μοναδικός κωδικός μηνύματος προς ανάγνωση.
      * @return Το περιεχόμενο του μηνύματος, αν υπάρχει. <br>
-     * Αν το μήνυμα δεν υπάρχει, επιστρέφεται "server.Message ID does not exist".
+     *         Αν το μήνυμα δεν υπάρχει, επιστρέφεται "Message ID does not exist".
+     *         Σε περίπτωση πού το authToken δεν αντιστοιχεί σε χρήστη επιστρέφεται μήνυμα σφάλματος.
+     * @throws InvalidAuthTokenException Σε περίπτωση πού το authToken δεν αντιστοιχεί σε χρήστη.
      */
     @Override
-    public String readMessage(int authToken, int messageId) throws RemoteException {
+    public String readMessage(int authToken, int messageId) throws RemoteException, InvalidAuthTokenException {
+        if (!checkTokenValidity(authToken)){
+            throw new InvalidAuthTokenException();
+        }
+
         // Βρίσκω τον λογαριασμό του ζητούμενου χρήστη, σημειώνω το μήνυμα ως διαβασμένο και επιστρέφω το περιεχόμενο του.
         return getValidUser(authToken).readMessage(messageId);
     }
@@ -219,10 +255,15 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
      *
      * @param authToken Ο μοναδικός κωδικός αυθεντικοποίησης του χρήστη.
      * @param messageId Ο μοναδικός κωδικός μηνύματος προς διαγραφή.
-     * @return "OK", σε περίπτωση επιτυχίας ή "server.Message does not exist" αν το μήνυμα δεν υπάρχει.
+     * @return "OK", σε περίπτωση επιτυχίας ή "Message does not exist" αν το μήνυμα δεν υπάρχει.
+     * @throws InvalidAuthTokenException Σε περίπτωση πού το authToken δεν αντιστοιχεί σε χρήστη.
      */
     @Override
-    public String deleteMessage(int authToken, int messageId) throws RemoteException {
+    public String deleteMessage(int authToken, int messageId) throws RemoteException, InvalidAuthTokenException {
+        if (!checkTokenValidity(authToken)){
+            throw new InvalidAuthTokenException();
+        }
+
         // Βρίσκω τον λογαριασμό του ζητούμενου χρήστη, επιχειρώ να το διαγράψω και επιστρέφω τα αποτελέσματα της διαγραφής.
         return getValidUser(authToken).deleteMessage(messageId);
     }

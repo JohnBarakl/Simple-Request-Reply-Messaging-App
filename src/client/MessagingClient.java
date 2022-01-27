@@ -1,6 +1,7 @@
 package client;
 
 import common.ClientQueries;
+import common.InvalidAuthTokenException;
 
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -113,10 +114,15 @@ public class MessagingClient {
                     int authToken = stringToIntWithErrorHandling(args[3],
                             String.format("%s%n%s", "Invalid authToken argument.", case2CorrectUsage));
 
-                    // Τυπώνω τη λίστα χρηστών.
-                    String[] accounts = queriesToServer.showAccounts(authToken);
-                    for (int i = 0; i < accounts.length; i++){
-                        System.out.printf("%d. %s%n", i, accounts[i]);
+
+                    try{
+                        // Τυπώνω τη λίστα χρηστών.
+                        String[] accounts = queriesToServer.showAccounts(authToken);
+                        for (int i = 0; i < accounts.length; i++) {
+                            System.out.printf("%d. %s%n", i, accounts[i]);
+                        }
+                    } catch (InvalidAuthTokenException e){ // Χειρισμός άκυρου authToken.
+                        System.out.println(e.getMessage());
                     }
                     break;
                 case 3:
@@ -139,8 +145,12 @@ public class MessagingClient {
                     // Λαμβάνω το περιεχόμενο του μηνύματος
                     String messageBody = args[5];
 
-                    // Εμφανίζω στον χρήστη την απάντηση του Server.
-                    System.out.println(queriesToServer.sendMessage(authToken, recipient, messageBody));
+                    try {
+                        // Εμφανίζω στον χρήστη την απάντηση του Server.
+                        System.out.println(queriesToServer.sendMessage(authToken, recipient, messageBody));
+                    } catch (InvalidAuthTokenException e){ // Χειρισμός άκυρου authToken.
+                        System.out.println(e.getMessage());
+                    }
                     break;
                 case 4:
                     String case4CorrectUsage = "Correct show inbox function: java client <ip> <port number> 4 <authToken>";
@@ -155,12 +165,16 @@ public class MessagingClient {
                     authToken = stringToIntWithErrorHandling(args[3],
                             String.format("%s%n%s", "Invalid authToken argument.", case4CorrectUsage));
 
-                    // Λαμβάνω λίστα με το μηνύματα για τον χρήστη.
-                    String[] inbox = queriesToServer.showInbox(authToken);
+                    try {
+                        // Λαμβάνω λίστα με το μηνύματα για τον χρήστη.
+                        String[] inbox = queriesToServer.showInbox(authToken);
 
-                    // Τυπώνω το περιεχόμενο της λίστας
-                    for (int i = 0; i < inbox.length; i++){
-                        System.out.printf("%d. %s%n", i, inbox[i]);
+                        // Τυπώνω το περιεχόμενο της λίστας
+                        for (String s : inbox) {
+                            System.out.println(s);
+                        }
+                    } catch (InvalidAuthTokenException e){ // Χειρισμός άκυρου authToken.
+                        System.out.println(e.getMessage());
                     }
                     break;
                 case 5:
@@ -181,8 +195,13 @@ public class MessagingClient {
                     int messageId = stringToIntWithErrorHandling(args[4],
                             String.format("%s%n%s", "Invalid message id argument.", case5CorrectUsage));
 
-                    // Εμφανίζω στον χρήστη την απάντηση του Server.
-                    System.out.println(queriesToServer.readMessage(authToken, messageId));
+
+                    try {
+                        // Εμφανίζω στον χρήστη την απάντηση του Server.
+                        System.out.println(queriesToServer.readMessage(authToken, messageId));
+                    } catch (InvalidAuthTokenException e){ // Χειρισμός άκυρου authToken.
+                        System.out.println(e.getMessage());
+                    }
                     break;
                 case 6:
                     String case6CorrectUsage = "Correct usage of delete message function: " +
@@ -202,8 +221,13 @@ public class MessagingClient {
                     messageId = stringToIntWithErrorHandling(args[4],
                             String.format("%s%n%s", "Invalid message id argument.", case6CorrectUsage));
 
-                    // Εμφανίζω στον χρήστη την απάντηση του Server.
-                    System.out.println(queriesToServer.deleteMessage(authToken, messageId));
+
+                    try {
+                        // Εμφανίζω στον χρήστη την απάντηση του Server.
+                        System.out.println(queriesToServer.deleteMessage(authToken, messageId));
+                    } catch (InvalidAuthTokenException e){ // Χειρισμός άκυρου authToken.
+                        System.out.println(e.getMessage());
+                    }
                     break;
                 default:
                     System.out.println("Given function id argument cannot be marched to implemented function.");

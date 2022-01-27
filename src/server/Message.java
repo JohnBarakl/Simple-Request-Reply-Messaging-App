@@ -24,7 +24,6 @@ public class Message implements Serializable {
     /** Το κείμενο του μηνύματος. */
     private String body;
 
-    // TODO: Document following fields.
     /** Ο μοναδικός κωδικός που αντιστοιχεί σε κάθε μήνυμα. */
     private int id;
 

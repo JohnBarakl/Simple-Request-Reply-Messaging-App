@@ -98,12 +98,12 @@ public class Account implements Serializable {
     }
 
     /**
-     * Επιστρέφει το περιεχόμενο ενός μηνύματος του χρήστη με id messageId.
+     * Επιστρέφει τον αποστολέα και το περιεχόμενο ενός μηνύματος του χρήστη με id messageId.
      * Έπειτα το μήνυμα (αν υπάρχει) σημειώνεται ως διαβασμένο.
      * Αν το μήνυμα δεν υπάρχει, επιστρέφεται "Message ID does not exist".
      *
      * @param messageId Το id του μηνύματος που αναζητείται.
-     * @return Το περιεχόμενο του μηνύματος αν αυτό βρεθεί ή, σε διαφορετική περίπτωση, το αντίστοιχο μήνυμα λάθους.
+     * @return Ο αποστολέας και το περιεχόμενο του μηνύματος αν αυτό βρεθεί ή, σε διαφορετική περίπτωση, το αντίστοιχο μήνυμα λάθους.
      */
     public synchronized String readMessage(int messageId){
         Message targetMessage = null;
@@ -121,7 +121,7 @@ public class Account implements Serializable {
             return "Message ID does not exist";
         } else { // Το μήνυμα βρέθηκε. Αποθηκεύω το περιεχόμενο επιστροφής και το σημειώνω ώς διαβασμένο.
             targetMessage.setRead(true);
-            return targetMessage.getBody();
+            return String.format("(%s) %s", targetMessage.getSender(), targetMessage.getBody());
         }
     }
 

@@ -7,7 +7,7 @@ import java.rmi.RemoteException;
  * Περιγράφει τα αιτήματα ενός client προς έναν server χρησιμοποιώντας RMI.<br>
  *
  * Κάθε μέθοδος της κλάσης αυτής περιγράφει ένα συγκεκριμένο αίτημα ώστε να μπορέσει να
- *  εκτελέσει την (αντίστοιχη) ζητούμενη λειτουργία.
+ *  εκτελέσει τη (αντίστοιχη) ζητούμενη λειτουργία.
  *
  * @author Ioannis Baraklilis
  */
@@ -29,8 +29,9 @@ public interface ClientQueries extends Remote {
      * Δείχνει μια λίστα με όλα τα accounts που υπάρχουν στο σύστημα.
      * @param authToken Ο μοναδικός κωδικός αυθεντικοποίησης του χρήστη.
      * @return Η λίστα με το username όλων των account.
+     * @throws InvalidAuthTokenException Σε περίπτωση πού το authToken δεν αντιστοιχεί σε χρήστη.
      */
-    public String[] showAccounts(int authToken) throws RemoteException;
+    public String[] showAccounts(int authToken) throws RemoteException, InvalidAuthTokenException;
 
     /**
      * Στέλνει το μήνυμα messageBody στο account με username recipient.
@@ -38,8 +39,9 @@ public interface ClientQueries extends Remote {
      * @param recipient Το username του παραλήπτη.
      * @param messageBody Το περιεχόμενο του μηνύματος.
      * @return Κατάσταση αποστολής του μηνύματος.
+     * @throws InvalidAuthTokenException Σε περίπτωση πού το authToken δεν αντιστοιχεί σε χρήστη.
      */
-    public String sendMessage(int authToken, String recipient, String messageBody) throws RemoteException;
+    public String sendMessage(int authToken, String recipient, String messageBody) throws RemoteException, InvalidAuthTokenException;
 
     /**
      * Εμφανίζει τη λίστα με όλα τα μηνύματα για έναν συγκεκριμένο χρήστη.
@@ -47,8 +49,9 @@ public interface ClientQueries extends Remote {
      * @return Λίστα με όλα τα μηνύματα του χρήστη. <br>
      *         Για κάθε στοιχείο της λίστας, εμφανίζεται ο μοναδικός κωδικός του μηνύματος,
      *          το username αποστολέα και η κατάσταση για το αν έχει ήδη διαβαστεί.
+     * @throws InvalidAuthTokenException Σε περίπτωση πού το authToken δεν αντιστοιχεί σε χρήστη.
      */
-    public String[] showInbox(int authToken) throws RemoteException;
+    public String[] showInbox(int authToken) throws RemoteException, InvalidAuthTokenException;
 
     /**
      * Αυτή η λειτουργία επιστρέφει το περιεχόμενο ενός μηνύματος του χρήστη με id
@@ -57,14 +60,16 @@ public interface ClientQueries extends Remote {
      * @param messageId Ο μοναδικός κωδικός μηνύματος προς ανάγνωση.
      * @return Το περιεχόμενο του μηνύματος, αν υπάρχει. <br>
      *         Αν το μήνυμα δεν υπάρχει, επιστρέφεται "server.Message ID does not exist".
+     * @throws InvalidAuthTokenException Σε περίπτωση πού το authToken δεν αντιστοιχεί σε χρήστη.
      */
-    public String readMessage(int authToken, int messageId) throws RemoteException;
+    public String readMessage(int authToken, int messageId) throws RemoteException, InvalidAuthTokenException;
 
     /**
      * Αυτή η λειτουργία διαγράφει το μήνυμα με id messageId.
      * @param authToken Ο μοναδικός κωδικός αυθεντικοποίησης του χρήστη.
      * @param messageId Ο μοναδικός κωδικός μηνύματος προς διαγραφή.
      * @return "OK", σε περίπτωση επιτυχίας ή "server.Message does not exist" αν το μήνυμα δεν υπάρχει.
+     * @throws InvalidAuthTokenException Σε περίπτωση πού το authToken δεν αντιστοιχεί σε χρήστη.
      */
-    public String deleteMessage(int authToken, int messageId) throws RemoteException;
+    public String deleteMessage(int authToken, int messageId) throws RemoteException, InvalidAuthTokenException;
 }
