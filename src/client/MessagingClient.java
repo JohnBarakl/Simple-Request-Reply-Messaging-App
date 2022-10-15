@@ -38,13 +38,13 @@ public class MessagingClient {
      *      - args: οι παράμετροι της λειτουργίας.
      *
      *      Η εκάστοτε λειτουργία που εκτελείται εξαρτάται απο το FN_ID των ορισμάτων και είναι οι:
-     *      - FN_ID = 1: Create server.Account. Ορίσματα στην εκτέλεση: ip port_number 1 username.
+     *      - FN_ID = 1: Create Account. Ορίσματα στην εκτέλεση: ip port_number 1 username.
      *          Δημιουργεί ένα account για το user και χρησιμοποιεί το δοσμένο username.
      *          Η συνάρτηση επιστρέφει ένα μοναδικό κωδικό (token) ο οποίος χρησιμοποιείται για να αυθεντικοποιηθεί ο
      *          χρήστης στα επόμενα αιτήματα του.
      *      - FN_ID = 2: Show Accounts. Ορίσματα στην εκτέλεση: ip port_number 2 authToken.
      *          Δείχνει μια λίστα με όλα τα accounts που υπάρχουν στο σύστημα.
-     *      - FN_ID = 3: Send server.Message. Ορίσματα στην εκτέλεση: ip port_number 3 authToken recipient message_body.
+     *      - FN_ID = 3: Send Message. Ορίσματα στην εκτέλεση: ip port_number 3 authToken recipient message_body.
      *          Στέλνει μήνυμα (message_body) στο account με username recipient.
      *      - FN_ID = 4: Show Inbox. Ορίσματα στην εκτέλεση: ip port_number 4 authToken.
      *          Εμφανίζει τη λίστα με όλα τα μηνύματα για έναν συγκεκριμένο χρήστη.
@@ -52,9 +52,10 @@ public class MessagingClient {
      *      - FN_ID = 5: ReadMessage. Ορίσματα στην εκτέλεση: ip port_number 5 authToken message_id.
      *          Αυτή η λειτουργία εμφανίζει το περιεχόμενο ενός μηνύματος του χρήστη με id message_id.
      *          Έπειτα το μήνυμα μαρκάρεται ως διαβασμένο.
-     *          Αν υπάρχει το μήνυμα το πρόγραμμα εκτυπώνει μήνυμα σφάλματος.
+     *          Αν δεν υπάρχει το μήνυμα το πρόγραμμα εκτυπώνει μήνυμα σφάλματος.
      *      - FN_ID = 6: DeleteMessage. Ορίσματα στην εκτέλεση: ip port number 6 authToken message_id.
      *          Αυτή η λειτουργία διαγράφει το μήνυμα με id message_id.
+      *         Αν δεν υπάρχει το μήνυμα το πρόγραμμα εκτυπώνει μήνυμα σφάλματος.
      * </pre>
      * @param args Ορίσματα κλήσης της διεπαφής του χρήστη.
      *             <p>Πρέπει να είναι του τύπου: ip port_number FN_ID args.</p>
@@ -102,7 +103,7 @@ public class MessagingClient {
                     System.out.println(queriesToServer.createAccount(username));
                     break;
                 case 2:
-                    String case2CorrectUsage = "Correct show accounts function: java client <ip> <port number> 2 <authToken>";
+                    String case2CorrectUsage = "Correct usage of show accounts function: java client <ip> <port number> 2 <authToken>";
                     // Έλεγχος για το αν υπάρχει σωστός αριθμός ορισμάτων.
                     if (args.length < 4){
                         System.out.println("Invalid argument number.");
@@ -119,7 +120,7 @@ public class MessagingClient {
                         // Τυπώνω τη λίστα χρηστών.
                         String[] accounts = queriesToServer.showAccounts(authToken);
                         for (int i = 0; i < accounts.length; i++) {
-                            System.out.printf("%d. %s%n", i, accounts[i]);
+                            System.out.printf("%d. %s%n", i + 1, accounts[i]);
                         }
                     } catch (InvalidAuthTokenException e){ // Χειρισμός άκυρου authToken.
                         System.out.println(e.getMessage());
@@ -153,10 +154,10 @@ public class MessagingClient {
                     }
                     break;
                 case 4:
-                    String case4CorrectUsage = "Correct show inbox function: java client <ip> <port number> 4 <authToken>";
+                    String case4CorrectUsage = "Correct usage of show inbox function: java client <ip> <port number> 4 <authToken>";
                     // Έλεγχος για το αν υπάρχει σωστός αριθμός ορισμάτων.
                     if (args.length < 4){
-                        System.out.println("Invalid username argument.");
+                        System.out.println("Invalid number of arguments.");
                         System.out.println(case4CorrectUsage);
                         System.exit(1);
                     }
@@ -191,7 +192,7 @@ public class MessagingClient {
                     authToken = stringToIntWithErrorHandling(args[3],
                             String.format("%s%n%s", "Invalid authToken argument.", case5CorrectUsage));
 
-                    // Λαμβάνω το username του παραλήπτη.
+                    // Λαμβάνω τον κωδικό μηνύματος.
                     int messageId = stringToIntWithErrorHandling(args[4],
                             String.format("%s%n%s", "Invalid message id argument.", case5CorrectUsage));
 
@@ -230,7 +231,7 @@ public class MessagingClient {
                     }
                     break;
                 default:
-                    System.out.println("Given function id argument cannot be marched to implemented function.");
+                    System.out.println("Given function id argument cannot be matched to implemented function.");
                     System.out.println(CORRECT_USAGE);
             }
         } catch (RemoteException | NotBoundException e) {
@@ -242,7 +243,7 @@ public class MessagingClient {
      * Μετατρέπει ένα String σε ακέραιο όπου αν υπάρξει κάποιο σφάλμα κατά τη μετατροπή, εμφανίζει το δοθέν μήνυμα
      * messageIfFail και σταματάει την εκτέλεση του προγράμματος.
      * @param number Ο ακέραιος σε τύπο συμβολοσειράς.
-     * @param messageIfFail ΤΟ μήνυμα που εμφανίζεται σε περίπτωση αποτυχίας.
+     * @param messageIfFail Το μήνυμα που εμφανίζεται σε περίπτωση αποτυχίας.
      * @return Ο ακέραιος σε τύπο ακεραίου.
      */
     private static int stringToIntWithErrorHandling (String number, String messageIfFail){

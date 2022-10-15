@@ -20,17 +20,17 @@ public class Account implements Serializable {
     private List<Message> messageBox;
 
     /**
-     * Ο προκαθορισμένος κατασκευαστής της server.Account που αρχικοποιεί τα πεδία σύμφωνα με τα ορίσματα.
+     * Ο προκαθορισμένος κατασκευαστής της Account που αρχικοποιεί τα πεδία σύμφωνα με τα ορίσματα.
      * @param username Το όνομα χρήστη. Αποτελείται μόνο από αλφαριθμητικά και τον ειδικό χαρακτήρα “_”.
      * @param authToken Ένας μοναδικός αριθμός αναγνώρισης του χρήστη (δημιουργείται από τον server και είναι προσωπικός/κρυφός).
      * @param messageBox Το γραμματοκιβώτιο του χρήστη, το οποίο είναι μία λίστα από Messages. <br>
      *                   Άν είναι null, το γραμματοκιβώτιο του χρήστη αρχικοποιείται με μία κενή λίστα.
      */
     public Account(String username, int authToken, List<Message> messageBox) {
-        // Έλεγχος για το αν το όνομα δόθηκε ως null ή αποτελείται μόνο από αλφαριθμητικά και τον ειδικό χαρακτήρα "_".
+        // Έλεγχος για το αν το όνομα δόθηκε ως null και αν δεν αποτελείται μόνο από αλφαριθμητικά και τον ειδικό χαρακτήρα "_".
         if (username == null){
             throw new IllegalArgumentException("The username argument must not be null.");
-        } else if (!username.matches("[a-zA-Z0-9_]+")){
+        } else if (!username.matches("(\\p{IsAlphabetic}|[0-9]|_)+")){
             throw new IllegalArgumentException("A username must be a string that consists of characters that are " +
                     "alphanumeric or _.");
         }
@@ -44,17 +44,18 @@ public class Account implements Serializable {
             this.messageBox = new ArrayList<>();
         }
     }
+
     /**
-     * Ο κατασκευαστής της server.Account που αρχικοποιεί τα πεδία σύμφωνα με τα ορίσματα αρχικοποιώντας το γραμματοκιβώτιο του
+     * Ο κατασκευαστής της Account που αρχικοποιεί τα πεδία σύμφωνα με τα ορίσματα αρχικοποιώντας το γραμματοκιβώτιο του
      * χρήστη με μία κενή λίστα.
      * @param username Το όνομα χρήστη. Αποτελείται μόνο από αλφαριθμητικά και τον ειδικό χαρακτήρα “_”.
      * @param authToken Ένας μοναδικός αριθμός αναγνώρισης του χρήστη (δημιουργείται από τον server και είναι προσωπικός/κρυφός).
      */
     public Account(String username, int authToken) {
-        // Έλεγχος για το αν το όνομα δόθηκε ως null ή αποτελείται μόνο από αλφαριθμητικά και τον ειδικό χαρακτήρα "_".
+        // Έλεγχος για το αν το όνομα δόθηκε ως null και αν δεν αποτελείται μόνο από αλφαριθμητικά και τον ειδικό χαρακτήρα "_".
         if (username == null){
             throw new IllegalArgumentException("The username argument must not be null.");
-        } else if (!username.matches("[a-zA-Z0-9_]+")){
+        } else if (!username.matches("(\\p{IsAlphabetic}|[0-9]|_)+")){
             throw new IllegalArgumentException("A username must be a string that consists of characters that are " +
                     "alphanumeric or _.");
         }
@@ -73,8 +74,8 @@ public class Account implements Serializable {
     }
 
     /**
-     * Επιστρέφει αντίγραφο της λίστας με αντίγραφα των μηνυμάτων που υπάρχουν στο γραμματοκιβώτιο του χρήστη.
-     * @return Αντίγραφο λίστας μηνυμάτων του γραμματοκιβωτίου.
+     * Επιστρέφει λίστα με αντίγραφα των μηνυμάτων που υπάρχουν στο γραμματοκιβώτιο του χρήστη.
+     * @return Λίστα μηνυμάτων του γραμματοκιβωτίου.
      */
     public synchronized Message[] getMessageBoxContents() {
         // Αρχικοποιώ το "δοχείο" με τα μηνύματα.
@@ -98,7 +99,7 @@ public class Account implements Serializable {
     }
 
     /**
-     * Επιστρέφει τον αποστολέα και το περιεχόμενο ενός μηνύματος του χρήστη με id messageId.
+     * Επιστρέφει τον αποστολέα και το περιεχόμενο ενός μηνύματος (του χρήστη) με id messageId.
      * Έπειτα το μήνυμα (αν υπάρχει) σημειώνεται ως διαβασμένο.
      * Αν το μήνυμα δεν υπάρχει, επιστρέφεται "Message ID does not exist".
      *
@@ -146,6 +147,8 @@ public class Account implements Serializable {
             }
         }
 
+        // Σε περίπτωση που δεν έγινε τερματισμός μεθόδου νωρίτερα και φτάσουμε σε αυτό το σημείο, σημαίνει ότι το μήνυμα
+        // δε βρέθηκε.
        return "Message does not exist";
     }
 }

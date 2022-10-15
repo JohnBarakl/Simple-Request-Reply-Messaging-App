@@ -39,29 +39,31 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
 
     /**
      * Δημιουργεί και επιστρέφει νέο (τυχαίο) μοναδικό κωδικό αυθεντικοποίησης χρήστη εξασφαλίζοντας ότι δεν έχει ήδη δεσμευτεί
-     * από άλλον χρήστη χρησιμοποιώντας το πεδίο usedAuthTokens. <br>
+     * από άλλον χρήστη χρησιμοποιώντας το πεδίο userAuthTokenToAccount. <br>
      *
      * Για τη δημιουργία τυχαίων αριθμών χρησιμοποιείται η γεννήτρια randomGenerator. Η εξασφάλιση παραγωγής μη δεσμευμένου
      * authToken υπόκειται στη συνεχή παραγωγή νέων τυχαίων αριθμών μέχρι να βρεθεί μη δεσμευμένο. Διαφορετικά, η διαδικασία
      * αυτή θα συνεχίζεται επ' αόριστον μέχρις ότου βρεθεί αχρησιμοποίητο κλειδί. <br>
      *
-     * Σημείωση: Η ευθύνη καταγραφής του αριθμού ως δεσμευμένου στο usedAuthTokens είναι ευθύνη της μεθόδου που χρησιμοποιεί
+     * Σημείωση: Η ευθύνη καταγραφής του αριθμού ως δεσμευμένου στο userAuthTokenToAccount (χρήση του ως κλειδί) είναι ευθύνη της μεθόδου που χρησιμοποιεί
      * την παρούσα.
-     * @return Νέος μη χρησιμοποιούμενος τυχαίος μοναδικός κωδικός χρήστη.
+     * @return Νέος (μη χρησιμοποιούμενος) τυχαίος μοναδικός κωδικός χρήστη.
      */
     private int generateUniqueAuthToken(){
-        int tempNumber = randomGenerator.nextInt();
-        tempNumber = tempNumber>=0?tempNumber:-tempNumber;
+        int tempNumber ;
 
         // Εξασφάλιση συγχρονισμού μεθόδου: Εισάγω το κρίσιμο τμήμα εντός synchronized block.
         synchronized (this){
+            tempNumber = randomGenerator.nextInt();
+            tempNumber = tempNumber>=0?tempNumber:-tempNumber;
+
             // Συνεχή παραγωγή τυχαίων αριθμών μέχρις ότου βρεθεί κάποιος που δεν είναι εγγεγραμμένος.
-            // Εξασφάλιση συγχρονισμού μεθόδου: Εισάγω το κρίσιμο τμήμα εντός synchronized block.
             while (userAuthTokenToAccount.containsKey(tempNumber)) {
                 tempNumber = randomGenerator.nextInt();
                 tempNumber = tempNumber>=0?tempNumber:-tempNumber;
             }
         }
+
         return tempNumber;
     }
 
@@ -75,14 +77,18 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
         Account thisAccount;
         // Εξασφάλιση συγχρονισμού μεθόδου: Εισάγω το κρίσιμο τμήμα εντός synchronized block.
         synchronized (this) {
-            thisAccount = userAccounts.get(userAuthTokenToAccount.get(authToken));
+            Integer userAccountsPosition = userAuthTokenToAccount.get(authToken);
+            if (userAccountsPosition == null) // Ελέγχω για την εγκυρότητα του authToken
+                return null;
+
+            thisAccount = userAccounts.get(userAccountsPosition);
         }
 
         return thisAccount;
     }
 
     /**
-     * Ελέγχει την εγκυρότητα του token του ορίσματος ως token που αντιστοιχεί σε αποθηκευμένο χρήστη και επιστρέφει το γεγονός αυτό.
+     * Ελέγχει την εγκυρότητα του token του ορίσματος ως token που αντιστοιχεί σε αποθηκευμένο χρήστη και επιστρέφει το αποτέλεσμα.
      * @param authToken Ο μοναδικός κωδικός αυθεντικοποίησης του χρήστη, του οποίου η ύπαρξη επαληθεύεται.
      * @return Η κατάσταση επιτυχίας επαλήθευσης.
      */
@@ -111,7 +117,7 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
     @Override
     public String createAccount(String username) throws RemoteException {
         // Έλεγχος ορθότητας μορφής username.
-        if (username==null || !username.matches("[a-zA-Z0-9_]+")){
+        if (username==null || !username.matches("(\\p{IsAlphabetic}|[0-9]|_)+")){
             return "Invalid Username";
         }
 
@@ -139,7 +145,6 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
      *
      * @param authToken Ο μοναδικός κωδικός αυθεντικοποίησης του χρήστη.
      * @return Η λίστα με το username όλων των account.
-     *         Σε περίπτωση πού το authToken δεν αντιστοιχεί σε χρήστη επιστρέφεται μήνυμα σφάλματος ως μοναδικό στοιχείο της λίστας.
      * @throws InvalidAuthTokenException Σε περίπτωση πού το authToken δεν αντιστοιχεί σε χρήστη.
      */
     @Override
@@ -161,7 +166,6 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
      * @param recipient Το username του παραλήπτη.
      * @param messageBody Το περιεχόμενο του μηνύματος.
      * @return Κατάσταση αποστολής του μηνύματος.
-     *         Σε περίπτωση πού το authToken δεν αντιστοιχεί σε χρήστη επιστρέφεται μήνυμα σφάλματος.
      * @throws InvalidAuthTokenException Σε περίπτωση πού το authToken δεν αντιστοιχεί σε χρήστη.
      */
     @Override
@@ -205,7 +209,6 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
      * @return Λίστα με όλα τα μηνύματα του χρήστη. <br>
      *         Για κάθε στοιχείο της λίστας, εμφανίζεται ο μοναδικός κωδικός του μηνύματος,
      *         το username αποστολέα και η κατάσταση για το αν έχει ήδη διαβαστεί. <br>
-     *         Σε περίπτωση πού το authToken δεν αντιστοιχεί σε χρήστη επιστρέφεται μήνυμα σφάλματος ως μοναδικό στοιχείο της λίστας.
      * @throws InvalidAuthTokenException Σε περίπτωση πού το authToken δεν αντιστοιχεί σε χρήστη.
      */
     @Override
@@ -237,7 +240,6 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
      * @param messageId Ο μοναδικός κωδικός μηνύματος προς ανάγνωση.
      * @return Το περιεχόμενο του μηνύματος, αν υπάρχει. <br>
      *         Αν το μήνυμα δεν υπάρχει, επιστρέφεται "Message ID does not exist".
-     *         Σε περίπτωση πού το authToken δεν αντιστοιχεί σε χρήστη επιστρέφεται μήνυμα σφάλματος.
      * @throws InvalidAuthTokenException Σε περίπτωση πού το authToken δεν αντιστοιχεί σε χρήστη.
      */
     @Override
@@ -255,7 +257,7 @@ public class ClientQueriesRemote extends UnicastRemoteObject implements ClientQu
      *
      * @param authToken Ο μοναδικός κωδικός αυθεντικοποίησης του χρήστη.
      * @param messageId Ο μοναδικός κωδικός μηνύματος προς διαγραφή.
-     * @return "OK", σε περίπτωση επιτυχίας ή "Message does not exist" αν το μήνυμα δεν υπάρχει.
+     * @return "OK", σε περίπτωση επιτυχίας ή "Message ID does not exist" αν το μήνυμα δεν υπάρχει.
      * @throws InvalidAuthTokenException Σε περίπτωση πού το authToken δεν αντιστοιχεί σε χρήστη.
      */
     @Override

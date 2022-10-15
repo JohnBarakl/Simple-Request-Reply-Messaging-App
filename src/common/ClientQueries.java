@@ -6,8 +6,8 @@ import java.rmi.RemoteException;
 /**
  * Περιγράφει τα αιτήματα ενός client προς έναν server χρησιμοποιώντας RMI.<br>
  *
- * Κάθε μέθοδος της κλάσης αυτής περιγράφει ένα συγκεκριμένο αίτημα ώστε να μπορέσει να
- *  εκτελέσει τη (αντίστοιχη) ζητούμενη λειτουργία.
+ * Κάθε μέθοδος περιγράφει ένα συγκεκριμένο αίτημα ώστε να μπορέσει να
+ * εκτελέσει τη (αντίστοιχη) ζητούμενη λειτουργία ο server.
  *
  * @author Ioannis Baraklilis
  */
@@ -54,12 +54,12 @@ public interface ClientQueries extends Remote {
     public String[] showInbox(int authToken) throws RemoteException, InvalidAuthTokenException;
 
     /**
-     * Αυτή η λειτουργία επιστρέφει το περιεχόμενο ενός μηνύματος του χρήστη με id
+     * Αυτή η λειτουργία επιστρέφει το όνομα αποστολέα και το περιεχόμενο ενός μηνύματος του χρήστη με id
      * messageId. Έπειτα το μήνυμα σημειώνεται ως διαβασμένο.
      * @param authToken Ο μοναδικός κωδικός αυθεντικοποίησης του χρήστη.
      * @param messageId Ο μοναδικός κωδικός μηνύματος προς ανάγνωση.
      * @return Το περιεχόμενο του μηνύματος, αν υπάρχει. <br>
-     *         Αν το μήνυμα δεν υπάρχει, επιστρέφεται "server.Message ID does not exist".
+     *         Αν το μήνυμα δεν υπάρχει, επιστρέφεται "Message ID does not exist".
      * @throws InvalidAuthTokenException Σε περίπτωση πού το authToken δεν αντιστοιχεί σε χρήστη.
      */
     public String readMessage(int authToken, int messageId) throws RemoteException, InvalidAuthTokenException;
@@ -68,7 +68,7 @@ public interface ClientQueries extends Remote {
      * Αυτή η λειτουργία διαγράφει το μήνυμα με id messageId.
      * @param authToken Ο μοναδικός κωδικός αυθεντικοποίησης του χρήστη.
      * @param messageId Ο μοναδικός κωδικός μηνύματος προς διαγραφή.
-     * @return "OK", σε περίπτωση επιτυχίας ή "server.Message does not exist" αν το μήνυμα δεν υπάρχει.
+     * @return "OK", σε περίπτωση επιτυχίας ή "Message does not exist" αν το μήνυμα δεν υπάρχει.
      * @throws InvalidAuthTokenException Σε περίπτωση πού το authToken δεν αντιστοιχεί σε χρήστη.
      */
     public String deleteMessage(int authToken, int messageId) throws RemoteException, InvalidAuthTokenException;
